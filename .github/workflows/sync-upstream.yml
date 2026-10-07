@@ -24,7 +24,9 @@ jobs:
     steps:
       - name: Merge deepseek-ai/deepseek-harness into master
         env:
-          GH_TOKEN: ${{ github.token }}
+          # github.token cannot modify .github/workflows. SYNC_UPSTREAM_TOKEN
+          # is a fine-grained PAT with contents and workflows write here.
+          GH_TOKEN: ${{ secrets.SYNC_UPSTREAM_TOKEN }}
         run: |
           set -euo pipefail
           gh api --method POST "repos/${GITHUB_REPOSITORY}/merge-upstream" -f branch=master
