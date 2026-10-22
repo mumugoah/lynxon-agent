@@ -26,6 +26,14 @@ The fence accepts loopback, the listener's own bind address, and every authority
 
 Neither the advertised URL nor the fence protects the listening port itself, so restrict the port to the trusted proxy or network.
 
+## Skip the launch token for a trusted browser
+
+`--no-browser-session` serves that invocation without the launch-token cookie. The printed URL has no token. A browser whose Host passes the fence loads the page and may use Host settings. Every other Host still receives 403. `GET /connect` still requires the process launch token. Restrict the port to the trusted proxy or network: that fence is then the only check.
+
+```sh
+dsh --profile web --host 10.0.0.7 --trusted-host app.example --no-browser-session
+```
+
 ## Secure the external leg
 
 Terminate TLS at the proxy, on the listener itself, or on both; `--public-url` remains an advertisement. An `http://` browser-facing root exposes the launch token in plaintext. An `https://` proxy root protects the browser-to-proxy leg; encryption between proxy and listener depends on the listener's TLS configuration.

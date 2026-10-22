@@ -117,6 +117,8 @@ export interface ClientTransportHooks {
 interface ClientTransportGlobal {
   __DSH_TRANSPORT__?: ClientTransportHooks
   __DSH_CONNECTION_RECOVERY__?: unknown
+  /** Set by a `--no-browser-session` Host so a trusted non-loopback page may use settings. */
+  __DSH_PRIVILEGED_BROWSER__?: boolean
 }
 
 /** Browser location fields used to classify loopback authority. */
@@ -134,6 +136,8 @@ export interface ConnectionInstallOptions {
   readonly recovery?: ConnectionRecoveryConfig
   /** Page location; omit for a non-browser composition. */
   readonly location?: ConnectionLocation
+  /** Host declared this page may use the privileged surface despite its authority. */
+  readonly privileged?: boolean
 }
 
 /**
@@ -146,7 +150,9 @@ export interface ConnectionHandle {
   /**
    * Whether the privileged surface is reachable: the page authority is
    * loopback, the transport declares the page owns the Host
-   * ({@link ClientTransportHooks.ownsHost}), or the context is not a browser.
+   * ({@link ClientTransportHooks.ownsHost}), the Host marked this page
+   * privileged ({@link ConnectionInstallOptions.privileged}), or the context
+   * is not a browser.
    */
   readonly isLoopback: boolean
   /** Current Remote event generation and the Host facts carried by its opening frame. */
@@ -265,7 +271,10 @@ export function installConnection(ctx: Context, options: ConnectionInstallOption
   const handle: ConnectionHandle = {
     interactions,
     openWebSocket: path => openConnectionWebSocket(path, transport?.createWebSocket, transport?.streamBaseUrl),
-    isLoopback: transport?.ownsHost === true || pageLocation === undefined || isLoopbackHostname(pageLocation.hostname),
+    isLoopback: options.privileged === true
+      || transport?.ownsHost === true
+      || pageLocation === undefined
+      || isLoopbackHostname(pageLocation.hostname),
     generation: {
       getSnapshot: () => generation,
       subscribe: (listener) => {
@@ -342,5 +351,6 @@ export function apply(ctx: Context): void {
     ...(transport === undefined ? {} : { transport }),
     recovery: resolveConnectionConfig(globals.__DSH_CONNECTION_RECOVERY__),
     ...(pageLocation === undefined ? {} : { location: pageLocation }),
+    ...(globals.__DSH_PRIVILEGED_BROWSER__ === true ? { privileged: true } : {}),
   })
 }

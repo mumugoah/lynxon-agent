@@ -1,6 +1,7 @@
 /**
  * The web app's command-line provider: it parses the `dsh --profile web` flag
- * family (`--host`, `--port`, `--public-url`, `--trusted-host`, `--no-open`, TLS)
+ * family (`--host`, `--port`, `--public-url`, `--trusted-host`, `--no-open`,
+ * `--no-browser-session`, TLS)
  * and its `--help` text, then provides the immutable values as
  * {@link WEB_STARTUP_SERVICE}. Ordinary rows inject that service before
  * reading it from lazy config.
@@ -37,12 +38,18 @@ export interface WebStartupValues {
   publicUrl?: string
   /** Explicit `--trusted-host` authorities, in argument order. */
   trustedHosts: string[]
+  /**
+   * Whether this invocation requires the launch-token browser session.
+   * `--no-browser-session` sets this to false.
+   */
+  browserSession: boolean
   /** Server certificate chain and unencrypted private key supplied together. */
   tls?: TlsConfig
 }
 
 /** The web flag family, as commander parsed it. */
 interface WebOptions {
+  browserSession: boolean
   host?: string
   open: boolean
   port?: string
@@ -62,6 +69,7 @@ function webCommand(): Command {
     .description('Serve the DeepSeek Harness browser UI.')
     .helpOption('-h, --help', 'show this help')
     .option('--host <host>', 'bind address: one concrete IPv4 or IPv6 literal of a local interface; wildcard addresses are rejected')
+    .option('--no-browser-session', 'do not require the launch-token browser session; the Host/Origin fence still applies')
     .option('--no-open', 'do not open the Web UI in the default browser')
     .option('--port <port>', 'listen port; pass 0 to let the OS pick a free one')
     .option('--public-url <url>', 'advertise this HTTP(S) root in the printed, opened, runtime-context, and DSH_WEB_URL forms; grants no trust')
@@ -74,6 +82,8 @@ Examples:
   dsh --profile web --no-open                serve without opening a browser
   dsh --profile web --port 8080              serve on another port
   dsh --profile web --host 10.0.0.7          bind one local interface address
+  dsh --profile web --host 10.0.0.7 --trusted-host app.example --no-browser-session
+                                             serve a trusted remote browser without a launch token
   dsh --profile web --public-url https://app.example/ui/ --trusted-host app.example
                                              advertise a prefix-stripping HTTPS proxy entry and admit its authority
   dsh --profile web --tls-cert ./server-chain.pem --tls-key ./server-key.pem
@@ -118,6 +128,7 @@ export function apply(ctx: Context): void {
       ...options.publicUrl !== undefined && { publicUrl: options.publicUrl },
       ...tls !== undefined && { tls },
       trustedHosts: options.trustedHost ?? [],
+      browserSession: options.browserSession,
     } satisfies WebStartupValues)
   })
   parseCmdline(ctx, program)

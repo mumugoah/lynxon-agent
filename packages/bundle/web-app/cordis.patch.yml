@@ -239,6 +239,8 @@
         # deployment values, for example: ['app.internal', ...ctx.webStartup.trustedHosts].
         # The listener's bind IP is accepted separately from this list.
         trustedHosts: !!js ctx.webStartup.trustedHosts
+        # `--no-browser-session` turns the launch-token cookie off for this invocation.
+        browserSession: !!js ctx.webStartup.browserSession
 
     # Raw Blob and ReadableStream uploads run independently of Connection's
     # RPC and generation service.

@@ -137,6 +137,34 @@ function browserCookie(connection: HostConnectionHandle, authority: string): str
 }
 
 describe('connection node half', () => {
+  it('serves a trusted browser without a launch token and still refuses an untrusted Host', async () => {
+    const { ctx, routes, connection, dispose } = await mounted({ browserSession: false })
+    try {
+      expect(connection.authenticatedUrl('http://127.0.0.1:3080')).toBe('http://127.0.0.1:3080')
+      const index = fakeResponse()
+      expect(connection.authorizeIndex(fakeRequest({ host: 'localhost' }, '/'), index.response)).toBe(true)
+      expect(index.state.status).toBeUndefined()
+      expect(index.state.headers?.['set-cookie']).toBeUndefined()
+      expect(connection.requestRejection(fakeRequest({ host: 'localhost' }))).toBeUndefined()
+      const forbidden = fakeResponse()
+      await routes[0]!.handler(fakeRequest({ host: 'evil.example' }), forbidden.response)
+      expect(forbidden.state.status).toBe(403)
+      const admitted = fakeResponse()
+      await routes[0]!.handler(fakeRequest({ host: 'localhost' }), admitted.response)
+      expect(admitted.state.status).toBe(404)
+      const connect = fakeResponse()
+      await routes.find(route => route.path === '/connect')!.handler(
+        fakeRequest({ host: 'localhost' }, '/connect'), connect.response,
+      )
+      expect(connect.state.status).toBe(401)
+      const rows: IndexInjection[] = []
+      ctx.emit('webserver/index-inject', rows)
+      expect(rows.map(row => row.kind === 'global' ? row.name : row.kind)).toContain('__DSH_PRIVILEGED_BROWSER__')
+    } finally {
+      await dispose()
+    }
+  })
+
   it('runs request admission after authentication and removes it with its owning fiber', async () => {
     const { ctx, routes, connection, dispose } = await mounted()
     let admitted = 0

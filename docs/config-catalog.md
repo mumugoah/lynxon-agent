@@ -451,6 +451,13 @@ export interface ConnectionConfig {
   trustedHosts?: string[]
   /** Absolute browser and API cookie lifetime in days. Default: 30. */
   cookieMaxAgeDays?: number
+  /**
+   * Require the launch-token browser session for the index and `/api`.
+   * Default: true. When false, a trusted browser is the shared owner Peer
+   * and the page may use Host settings; the Host/Origin fence still applies,
+   * and `GET /connect` still requires the process launch token.
+   */
+  browserSession?: boolean
   /** Maximum buffered JSON body for every `/api` request. Default: 300 MiB. */
   maxRequestBodyBytes?: number
 }
