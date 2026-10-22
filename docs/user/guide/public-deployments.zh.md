@@ -26,6 +26,14 @@ dsh --profile web --public-url https://app.example/ui/ --trusted-host app.exampl
 
 无论是公告 URL 还是栅栏都不保护监听端口本身，因此请把端口限制在可信代理或网络内。
 
+## 让可信浏览器跳过启动 token
+
+`--no-browser-session` 让本次调用不再要求启动 token cookie。打印的 URL 不含 token。Host 通过栅栏的浏览器可以加载页面并使用 Host 设置。其他 Host 仍得到 403。`GET /connect` 仍要求进程启动 token。请把端口限制在可信代理或网络内：此时栅栏是唯一的检查。
+
+```sh
+dsh --profile web --host 10.0.0.7 --trusted-host app.example --no-browser-session
+```
+
 ## 保护外部链路
 
 可以在代理处、监听器本身或两者上终止 TLS；`--public-url` 仍只是公告。面向浏览器的 `http://` 根会明文暴露启动 token。`https://` 代理根保护浏览器到代理这一段；代理与监听器之间是否加密取决于监听器的 TLS 配置。

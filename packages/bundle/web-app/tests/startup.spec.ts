@@ -65,6 +65,7 @@ export const apply = ctx => globalThis.__webStartupApply(ctx)
     '    port: !!js ctx.webStartup.port ?? 3080',
     '    publicUrl: !!js ctx.webStartup.publicUrl',
     '    trustedHosts: !!js ctx.webStartup.trustedHosts',
+    '    browserSession: !!js ctx.webStartup.browserSession',
     '    tls: !!js ctx.webStartup.tls',
     '- id: provider',
     `  name: ${pathToFileURL(join(dir, 'provider.mjs')).href}`,
@@ -110,6 +111,7 @@ describe('web command-line provider', () => {
       port: 8080,
       trustedHosts: ['lab.internal', 'lab-2.internal', '10.0.0.9'],
       tls: { certFile: 'fullchain.pem', keyFile: 'private-key.pem' },
+      browserSession: true,
     })
     expect(observed.readerConfig).toEqual(values)
     expect(observed.exits).toEqual([])
@@ -127,12 +129,13 @@ describe('web command-line provider', () => {
 
   it('leaves deployment values to each consumer when flags omit them', async () => {
     const { values, observed } = await bootProvider([])
-    expect(values).toEqual({ openBrowser: true, trustedHosts: [] })
+    expect(values).toEqual({ openBrowser: true, trustedHosts: [], browserSession: true })
     expect(observed.readerConfig).toEqual({
       host: '127.0.0.1',
       openBrowser: true,
       port: 3080,
       trustedHosts: [],
+      browserSession: true,
     })
   })
 
@@ -140,6 +143,7 @@ describe('web command-line provider', () => {
     const { values, observed } = await bootProvider(['--help'])
     expect(observed.out).toContain('dsh --profile web')
     expect(observed.out).toContain('--no-open')
+    expect(observed.out).toContain('--no-browser-session')
     expect(observed.out).toContain('--public-url')
     expect(observed.out).toContain('--trusted-host')
     expect(values).toBeUndefined()
@@ -155,6 +159,26 @@ describe('web command-line provider', () => {
     expect(observed.exits).toEqual([1])
   })
 
+  it('publishes --no-browser-session without granting trust', async () => {
+    const { values, observed } = await bootProvider([
+      '--no-browser-session',
+      '--trusted-host', 'app.example',
+    ])
+    expect(values).toEqual({
+      openBrowser: true,
+      trustedHosts: ['app.example'],
+      browserSession: false,
+    })
+    expect(observed.readerConfig).toEqual({
+      host: '127.0.0.1',
+      openBrowser: true,
+      port: 3080,
+      trustedHosts: ['app.example'],
+      browserSession: false,
+    })
+    expect(observed.exits).toEqual([])
+  })
+
   it('publishes --public-url as advertisement only, leaving the fence to --trusted-host', async () => {
     const { values, observed } = await bootProvider([
       '--public-url', 'https://web.example/ui',
@@ -164,6 +188,7 @@ describe('web command-line provider', () => {
       openBrowser: true,
       publicUrl: 'https://web.example/ui',
       trustedHosts: ['lab.internal'],
+      browserSession: true,
     })
     expect(observed.readerConfig).toEqual({
       host: '127.0.0.1',
@@ -171,6 +196,7 @@ describe('web command-line provider', () => {
       port: 3080,
       publicUrl: 'https://web.example/ui',
       trustedHosts: ['lab.internal'],
+      browserSession: true,
     })
     expect(observed.exits).toEqual([])
   })

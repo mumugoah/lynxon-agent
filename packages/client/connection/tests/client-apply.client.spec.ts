@@ -134,6 +134,12 @@ describe('connection client apply', () => {
     expect((await mount()).isLoopback).toBe(false)
   })
 
+  it('treats a non-loopback page as privileged when the Host marks the browser', async () => {
+    ;(globalThis as Win).location = { hostname: 'agent.mini.home' }
+    vi.stubGlobal('__DSH_PRIVILEGED_BROWSER__', true)
+    expect((await mount()).isLoopback).toBe(true)
+  })
+
   it('requires one generation source and ignores a stale source disposer', async () => {
     ;(globalThis as Win).location = { hostname: 'localhost' }
     const handle = await mount()

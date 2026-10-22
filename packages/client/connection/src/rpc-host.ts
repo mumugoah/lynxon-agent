@@ -83,11 +83,15 @@ export class HostConnectionService extends Service implements HostConnectionHand
    * @param ctx - owning Connection plugin context.
    * @param trustedHosts - deployment authorities accepted by the Host/Origin fence.
    * @param browserAuth - process token and persistent browser-session owner.
+   * @param browserSession - whether the index and `/api` require that browser session.
+   *   When false, a trusted request without a live API Peer is the shared browser
+   *   Peer, and `GET /connect` still requires the process launch token.
    */
   constructor(
     ctx: Context,
     private readonly trustedHosts: readonly string[],
     private readonly browserAuth: BrowserAuth,
+    private readonly browserSession = true,
   ) {
     super(ctx, 'connection')
     this.owner = ctx
@@ -130,6 +134,15 @@ export class HostConnectionService extends Service implements HostConnectionHand
     if (!this.isTrusted(request)) return { rejection: 403 }
     if (this.disposed) return { rejection: 401 }
     const secure = this.owner.get('webServer')?.protocol === 'https:'
+    // The network path is the access check for this invocation. A live API
+    // Peer cookie still selects that Peer; every other trusted request is the
+    // shared browser Peer.
+    if (!this.browserSession) {
+      const id = this.browserAuth.authenticateApi(request, secure)
+      const record = id === undefined ? undefined : this.peers.get(id)
+      if (record !== undefined) return { peer: record.peer }
+      return { peer: this.browserPeer }
+    }
     if (this.browserAuth.isAuthenticated(request, secure)) return { peer: this.browserPeer }
     const id = this.browserAuth.authenticateApi(request, secure)
     const record = id === undefined ? undefined : this.peers.get(id)
@@ -189,13 +202,19 @@ export class HostConnectionService extends Service implements HostConnectionHand
 
   /**
    * Authenticate an index request; native TLS listeners mint Secure cookies.
+   * A disabled browser session serves the index without a cookie.
    */
   authorizeIndex(request: ConnectionIndexRequest, response: ConnectionIndexResponse): boolean {
+    if (!this.browserSession) return true
     return this.browserAuth.authorizeIndex(request, response, this.ctx.get('webServer')?.protocol === 'https:')
   }
 
-  /** Add this process's launch token to the clean application URL. */
+  /**
+   * Add this process's launch token to the clean application URL.
+   * A disabled browser session returns that URL unchanged.
+   */
   authenticatedUrl(baseUrl: string): string {
+    if (!this.browserSession) return baseUrl
     return this.browserAuth.authenticatedUrl(baseUrl)
   }
 
