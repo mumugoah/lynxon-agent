@@ -4,6 +4,10 @@ name: Sync upstream
 # This file exists only on the fork, so once it lands, later syncs merge
 # instead of fast-forwarding. It does not run on push: the sync commit itself
 # must not start this workflow again.
+#
+# Product patches stay off master. Each one is a single commit on its own
+# branch, based on this master, and is rebased onto master after a sync.
+# The current patch is branch web-no-browser-session (`--no-browser-session`).
 on:
   schedule:
     # 02:17 UTC daily = 10:17 Asia/Shanghai, off the top of the hour.
