@@ -712,6 +712,54 @@ describe('UiWorkspaceService', () => {
     ])
   })
 
+  it('asks the latest new-session preset provider only when navigation names no preset', async () => {
+    const b = bench({
+      sessions: sessionState([
+        summary('plain', { blank: true, cwd: '/w/a', projectionValues: { agentPreset: 'standard' } }),
+      ], 'pending'),
+      workspaces: workspaceState([workspace('a', [sid('plain')])]),
+    })
+    const outer = b.uiWorkspace.provideNewSessionPreset(() => 'standard')
+    const inner = b.uiWorkspace.provideNewSessionPreset(() => 'expert')
+    b.uiWorkspace.startSession(wid('a'))
+    await vi.waitFor(() => {
+      expect(b.sessions.create).toHaveBeenCalledExactlyOnceWith({ workspaceId: wid('a'), agentPreset: 'expert' })
+    })
+    b.sessions.create.mockClear()
+    b.uiWorkspace.startSession(wid('a'), { agentPreset: 'ptc' })
+    await vi.waitFor(() => {
+      expect(b.sessions.create).toHaveBeenCalledExactlyOnceWith({ workspaceId: wid('a'), agentPreset: 'ptc' })
+    })
+    b.sessions.create.mockClear()
+    inner()
+    b.uiWorkspace.startSession(wid('a'))
+    await vi.waitFor(() => {
+      expect(b.sessions.create).toHaveBeenCalledExactlyOnceWith({ workspaceId: wid('a'), sessionId: sid('plain'), agentPreset: 'standard' })
+    })
+    b.sessions.create.mockClear()
+    outer()
+    // Startup restoration connects without consulting providers.
+    b.uiWorkspace.provideNewSessionPreset(() => 'expert')
+    await b.uiWorkspace.connectWorkspace(wid('a'))
+    expect(b.sessions.create).toHaveBeenCalledExactlyOnceWith({ workspaceId: wid('a'), sessionId: sid('plain') })
+  })
+
+  it('keeps the Host default when the new-session preset provider throws or returns nothing', async () => {
+    const b = bench({
+      sessions: sessionState([summary('blank', { blank: true, cwd: '/w/a' })], 'pending'),
+      workspaces: workspaceState([workspace('a', [sid('blank')])]),
+    })
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const dispose = b.uiWorkspace.provideNewSessionPreset(() => { throw new Error('boom') })
+    b.uiWorkspace.startSession(wid('a'))
+    await vi.waitFor(() => {
+      expect(b.sessions.create).toHaveBeenCalledExactlyOnceWith({ workspaceId: wid('a'), sessionId: sid('blank') })
+    })
+    expect(warn).toHaveBeenCalled()
+    dispose()
+    warn.mockRestore()
+  })
+
   it('reports a refused explicit Session creation through the Workspace notice', async () => {
     const b = bench({ workspaces: workspaceState([workspace('a')]), sessions: sessionState() })
     // Startup restoration creates its own Session first and stays quiet on failure (pinned above).
