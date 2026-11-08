@@ -161,7 +161,7 @@ describe('connection node half', () => {
       )
       expect(connect.state.status).toBe(401)
       const rows: IndexInjection[] = []
-      ctx.emit('webserver/index-inject', rows)
+      ctx.emit('webserver/index-inject', rows, { principal: { kind: 'owner' } } as Parameters<WebServer['renderIndex']>[1])
       expect(rows.map(row => row.kind === 'global' ? row.name : row.kind)).toContain('__DSH_PRIVILEGED_BROWSER__')
     } finally {
       await dispose()

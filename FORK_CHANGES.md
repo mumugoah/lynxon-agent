@@ -14,7 +14,8 @@
 - **提交**：`c6bc40ff4e feat(web): serve a trusted browser without the launch-token session`（分支 `web-no-browser-session`）。
 - **文件**：`packages/bundle/web-app/src/startup.ts`、`packages/bundle/web-app/cordis.patch.yml`、`packages/client/connection/README*`，以及 CLI 帮助、配置目录、网页服务、公开部署等文档。
 - **对外接口**：`dsh web --no-browser-session`；`GET /connect` 仍要求进程令牌。
-- **验证**：`packages/bundle/web-app/tests/startup.spec.ts`。
+- **验证**：`packages/bundle/web-app/tests/startup.spec.ts`、`packages/client/connection/tests/node-half.host.spec.ts`。
+- **合并注意**：合并上游后 `webserver/index-inject` 多了 `peer` 参数，`node-half.host.spec.ts` 里发这个事件要带上页面 peer（已在 `feat/new-session-preset-provider` 上修好）。
 - **上游状态**：未提交。
 
 ## 2. 新会话默认 preset 的提供者（`uiWorkspace.provideNewSessionPreset`）
