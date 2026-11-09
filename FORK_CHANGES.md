@@ -27,10 +27,10 @@
 
   ```ts
   // UiWorkspace
-  provideNewSessionPreset(provider: () => string | undefined): () => void
+  provideNewSessionPreset(provider: (workspaceId: WorkspaceId) => string | undefined): () => void
   ```
 
-  `openWorkspace` 在调用方没指定 preset 时读最后注册的提供者；返回 `undefined`、空串或抛错时保持 Host 默认值。显式指定的 preset 优先；启动恢复（`connectWorkspace`）不读提供者。
+  `openWorkspace` 在调用方没指定 preset 时读最后注册的提供者，并传入目标工作区 id（插件据此按工作区选专家，不跟随当前选中项）；返回 `undefined`、空串或抛错时保持 Host 默认值。显式指定的 preset 优先；启动恢复（`connectWorkspace`）不读提供者。
 - **使用方**：Ontos 仓库 `packages/ontos-deepworks-plugin/src/client/index.ts`。插件按可选能力使用：DSH 没有这个方法时，新会话照旧用默认 preset。
 - **验证**：`npx vitest run packages/client/ui-workspace/tests/workspaces-service.client.spec.ts`（「asks the latest new-session preset provider…」「keeps the Host default when…」两条）；网页端选一个专家后点「新会话」，新会话页的 preset 选择显示该专家。
 - **合并注意**：上游改 `openWorkspace` 签名或把新会话改走别的路径时，把提供者的读取挪到新路径上。
