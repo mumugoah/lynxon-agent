@@ -744,6 +744,20 @@ describe('UiWorkspaceService', () => {
     expect(b.sessions.create).toHaveBeenCalledExactlyOnceWith({ workspaceId: wid('a'), sessionId: sid('plain') })
   })
 
+  it('tells the new-session preset provider which Workspace is opening', async () => {
+    const b = bench({
+      sessions: sessionState([summary('plain', { cwd: '/w/b' })], 'pending'),
+      workspaces: workspaceState([workspace('a'), workspace('b', [sid('plain')])]),
+    })
+    const provider = vi.fn((workspaceId: WorkspaceId) => (workspaceId === wid('b') ? 'expert-b' : 'expert-a'))
+    b.uiWorkspace.provideNewSessionPreset(provider)
+    b.uiWorkspace.startSession(wid('b'))
+    await vi.waitFor(() => {
+      expect(b.sessions.create).toHaveBeenCalledExactlyOnceWith({ workspaceId: wid('b'), agentPreset: 'expert-b' })
+    })
+    expect(provider).toHaveBeenCalledWith(wid('b'))
+  })
+
   it('keeps the Host default when the new-session preset provider throws or returns nothing', async () => {
     const b = bench({
       sessions: sessionState([summary('blank', { blank: true, cwd: '/w/a' })], 'pending'),
