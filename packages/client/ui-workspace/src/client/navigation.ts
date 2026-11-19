@@ -90,14 +90,6 @@ export interface UiWorkspace {
    */
   startSession(workspaceId?: WorkspaceId, options?: StartSessionOptions): void
   /**
-   * Supply the preset of blanks the user opens without naming one: New Session, its shortcut,
-   * and selecting a Workspace. Startup restoration and explicit presets are unaffected. The
-   * latest registration wins; a provider returning undefined keeps the Host default.
-   * @param provider - read at each navigation with the Workspace being opened, so it can follow plugin state.
-   * @returns disposer that removes this provider.
-   */
-  provideNewSessionPreset(provider: (workspaceId: WorkspaceId) => string | undefined): () => void
-  /**
    * Archive a Session and clear it when it is the current selection.
    * @param sessionId - Session to archive.
    * @param options - `stopActivity` asks the Host to stop the Session's running work instead of refusing.
@@ -178,8 +170,6 @@ class UiWorkspaceService extends Service implements UiWorkspace {
     readonly attempt: Promise<SessionId>
   }>()
   private readonly lifetime = new AbortController()
-  /** New-session preset providers in registration order; the last one is consulted. */
-  private readonly presetProviders: Array<(workspaceId: WorkspaceId) => string | undefined> = []
   private readonly selection = createSnapshotStore<MainSelection>(
     {}, { persist: { name: 'dsh.sessions.current' } },
   )
@@ -309,29 +299,7 @@ class UiWorkspaceService extends Service implements UiWorkspace {
     beforeOpen?: (sessionId: SessionId) => void,
     options: Pick<StartSessionOptions, 'agentPreset'> = {},
   ): Promise<void> {
-    const agentPreset = options.agentPreset ?? this.providedPreset(workspaceId)
-    return this.openWorkspaceSession(workspaceId, beforeOpen, agentPreset === undefined ? {} : { agentPreset })
-  }
-
-  provideNewSessionPreset(provider: (workspaceId: WorkspaceId) => string | undefined): () => void {
-    this.presetProviders.push(provider)
-    return () => {
-      const index = this.presetProviders.lastIndexOf(provider)
-      if (index >= 0) this.presetProviders.splice(index, 1)
-    }
-  }
-
-  /** The latest provider's preset; a throwing provider is reported and treated as absent. */
-  private providedPreset(workspaceId: WorkspaceId): string | undefined {
-    const provider = this.presetProviders.at(-1)
-    if (provider === undefined) return undefined
-    try {
-      const preset = provider(workspaceId)
-      return typeof preset === 'string' && preset !== '' ? preset : undefined
-    } catch (error: unknown) {
-      console.warn('new session preset provider failed:', error)
-      return undefined
-    }
+    return this.openWorkspaceSession(workspaceId, beforeOpen, options)
   }
 
   private async openWorkspaceSession(
