@@ -1,0 +1,11 @@
+{
+  "name": "@local/trusted-browser",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Serve browsers that pass the Host/Origin fence as the shared owner Peer, without the launch-token session.",
+  "type": "module",
+  "exports": {
+    ".": "./index.js"
+  },
+  "files": ["index.js"]
+}
