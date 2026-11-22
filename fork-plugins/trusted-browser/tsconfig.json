@@ -1,0 +1,18 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "composite": false,
+    "incremental": false,
+    "noEmit": true,
+    "allowJs": true,
+    "checkJs": true,
+    "rewriteRelativeImportExtensions": false
+  },
+  "include": ["index.js", "tests"],
+  "references": [
+    { "path": "../../vendor/cordis" },
+    { "path": "../../packages/client/connection/tsconfig.host.json" },
+    { "path": "../../packages/host/authentication-token" },
+    { "path": "../../packages/host/webserver" }
+  ]
+}
